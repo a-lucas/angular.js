@@ -1,12 +1,12 @@
 {
-  "name": "angularjs",
+  "name": "angular-engine.js",
   "license": "MIT",
   "branchVersion": "^1.5.0-beta.2",
   "branchPattern": "1.5.*",
   "distTag": "beta",
   "repository": {
     "type": "git",
-    "url": "https://github.com/angular/angular.js.git"
+    "url": "git+https://github.com/a-lucas/angular.js.git"
   },
   "engines": {
     "node": "<5",
@@ -90,5 +90,25 @@
     "commitizen": {
       "path": "node_modules/cz-conventional-changelog"
     }
-  }
+  },
+  "description": "Using AngularJS with the Closure Compiler =========================================",
+  "bugs": {
+    "url": "https://github.com/angular/angular.js/issues"
+  },
+  "homepage": "https://github.com/angular/angular.js#readme",
+  "version": "0.1.0",
+  "main": "Gruntfile.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "keywords": [
+    "Event(",
+    "StackQueueEmpty",
+    "$log",
+    "fs",
+    "$EngineQueue",
+    "EngineQueue"
+  ],
+  "author": "Antoine LUCAS <cooluhuru@gmail.com> (later)"
 }

@@ -41,8 +41,19 @@
  *
  */
 function $ExceptionHandlerProvider() {
-  this.$get = ['$log', function($log) {
+
+  this.$get = ['$log', '$window', function($log, $window) {
     return function(exception, cause) {
+      var err = new Error();
+      var stack = err.stack;
+      var ErrorEvent = new CustomEvent('ServerExceptionHandler', {
+        details: {
+          exception: exception,
+          cause: cause,
+          err: JSON.stringify(err)
+        }
+      });
+      $window.dispatchEvent(ErrorEvent);
       $log.error.apply($log, arguments);
     };
   }];

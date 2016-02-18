@@ -3,13 +3,15 @@
 
 describe('$httpBackend', function() {
 
-  var $backend, $browser, callbacks,
+  var $backend, $browser, $engineQueue, callbacks,
       xhr, fakeDocument, callback;
 
 
   beforeEach(inject(function($injector) {
     callbacks = {counter: 0};
     $browser = $injector.get('$browser');
+    $engineQueue = $injector.get('$engineQueue');
+
     fakeDocument = {
       $$scripts: [],
       createElement: jasmine.createSpy('createElement').andCallFake(function() {
@@ -28,7 +30,7 @@ describe('$httpBackend', function() {
         })
       }
     };
-    $backend = createHttpBackend($browser, createMockXhr, $browser.defer, callbacks, fakeDocument);
+    $backend = createHttpBackend($browser, createMockXhr, $engineQueue, $browser.defer, callbacks, fakeDocument);
     callback = jasmine.createSpy('done');
   }));
 
@@ -235,7 +237,7 @@ describe('$httpBackend', function() {
 
   it('should call $xhrFactory with method and url', function() {
     var mockXhrFactory = jasmine.createSpy('mockXhrFactory').andCallFake(createMockXhr);
-    $backend = createHttpBackend($browser, mockXhrFactory, $browser.defer, callbacks, fakeDocument);
+    $backend = createHttpBackend($browser, mockXhrFactory, $engineQueue, $browser.defer, callbacks, fakeDocument);
     $backend('GET', '/some-url', 'some-data', noop);
     expect(mockXhrFactory).toHaveBeenCalledWith('GET', '/some-url');
   });
@@ -367,7 +369,7 @@ describe('$httpBackend', function() {
 
 
     it('should convert 0 to 200 if content and file protocol', function() {
-      $backend = createHttpBackend($browser, createMockXhr);
+      $backend = createHttpBackend($browser, createMockXhr, $engineQueue);
 
       $backend('GET', 'file:///whatever/index.html', null, callback);
       respond(0, 'SOME CONTENT');
@@ -377,7 +379,7 @@ describe('$httpBackend', function() {
     });
 
     it('should convert 0 to 200 if content for protocols other than file', function() {
-      $backend = createHttpBackend($browser, createMockXhr);
+      $backend = createHttpBackend($browser, createMockXhr, $engineQueue);
 
       $backend('GET', 'someProtocol:///whatever/index.html', null, callback);
       respond(0, 'SOME CONTENT');
@@ -387,7 +389,7 @@ describe('$httpBackend', function() {
     });
 
     it('should convert 0 to 404 if no content and file protocol', function() {
-      $backend = createHttpBackend($browser, createMockXhr);
+      $backend = createHttpBackend($browser, createMockXhr, $engineQueue);
 
       $backend('GET', 'file:///whatever/index.html', null, callback);
       respond(0, '');
@@ -397,7 +399,7 @@ describe('$httpBackend', function() {
     });
 
     it('should not convert 0 to 404 if no content for protocols other than file', function() {
-      $backend = createHttpBackend($browser, createMockXhr);
+      $backend = createHttpBackend($browser, createMockXhr, $engineQueue);
 
       $backend('GET', 'someProtocol:///whatever/index.html', null, callback);
       respond(0, '');
@@ -425,7 +427,7 @@ describe('$httpBackend', function() {
 
       try {
 
-        $backend = createHttpBackend($browser, createMockXhr);
+        $backend = createHttpBackend($browser, createMockXhr, $engineQueue);
 
         $backend('GET', '/whatever/index.html', null, callback);
         respond(0, '');
@@ -440,7 +442,7 @@ describe('$httpBackend', function() {
 
 
     it('should return original backend status code if different from 0', function() {
-      $backend = createHttpBackend($browser, createMockXhr);
+      $backend = createHttpBackend($browser, createMockXhr, $engineQueue);
 
       // request to http://
       $backend('POST', 'http://rest_api/create_whatever', null, callback);

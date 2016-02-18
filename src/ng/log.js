@@ -133,14 +133,19 @@ function $LogProvider() {
       return arg;
     }
 
+
+
     function consoleLog(type) {
       var console = $window.console || {},
           logFn = console[type] || console.log || noop,
+          fsEnabled = typeof $window.fs !== 'undefined' && typeof $window.logFiles === 'object',
           hasApply = false;
 
       // Note: reading logFn.apply throws an error in IE11 in IE8 document mode.
       // The reason behind this is that console.log has type "object" in IE8...
       try {
+
+
         hasApply = !!logFn.apply;
       } catch (e) {}
 
@@ -150,9 +155,22 @@ function $LogProvider() {
           forEach(arguments, function(arg) {
             args.push(formatError(arg));
           });
+          // Note: The AngularServer set up in jsdom these global variables:
+          // window.fs = fs ; (fs node.js)
+          // window.logFiles = {
+          //    'log': path: ServerSide logFilePath
+          //    'err' , and so on ....
+          // }
+          if (fsEnabled) {
+            $window.fs.appendFile($window.logFiles[type], args.join('\n'), function(err) {
+              throw err;
+            });
+          }
           return logFn.apply(console, args);
         };
       }
+
+
 
       // we are IE which either doesn't have window.console => this is noop and we do nothing,
       // or we are IE where console.log doesn't have apply so we log at least first 2 args
