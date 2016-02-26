@@ -1,9 +1,31 @@
+
+IMPORTANT
+=========
+This build is used as an experiment for a jsdom server implementation: 
+     http://github.com/a-lucas/angular-on-server
+     
+
+### Two new window Events
+
+#### - IdleState
+```!javascript
+window/$window.addEventListener( 'IdleState', function() {
+    console.log('The AngularApp is now in an idle state.');
+});
+```
+     
+#### - AngularContextException
+```!javascript
+window/$window.addEventListener('AngularContextException', function(err){
+    console.log('Angular notifies the renderer some s### just happened', err); 
+});
+```
+
 AngularJS [![Build Status](https://travis-ci.org/angular/angular.js.svg?branch=master)](https://travis-ci.org/angular/angular.js)
 =========
 
 AngularJS lets you write client-side web applications as if you had a smarter browser.  It lets you
 use good old HTML (or HAML, Jade and friends!) as your template language and lets you extend HTML’s
-syntax to express your application’s components clearly and succinctly.  It automatically
 synchronizes data from your UI (view) with your JavaScript objects (model) through 2-way data
 binding. To help you structure your application better and make it easy to test, AngularJS teaches
 the browser how to do dependency injection and inversion of control.

@@ -15,27 +15,26 @@
  * {@link ng.$logProvider ng.$logProvider#debugEnabled} to change this.
  *
  * @example
-   <example module="logExample">
-     <file name="script.js">
-       angular.module('logExample', [])
-         .controller('LogController', ['$scope', '$log', function($scope, $log) {
+ <example module="logExample">
+ <file name="script.js">
+ angular.module('logExample', [])
+ .controller('LogController', ['$scope', '$log', function($scope, $log) {
            $scope.$log = $log;
            $scope.message = 'Hello World!';
          }]);
-     </file>
-     <file name="index.html">
-       <div ng-controller="LogController">
-         <p>Reload this page with open console, enter text and hit the log button...</p>
-         <label>Message:
-         <input type="text" ng-model="message" /></label>
-         <button ng-click="$log.log(message)">log</button>
-         <button ng-click="$log.warn(message)">warn</button>
-         <button ng-click="$log.info(message)">info</button>
-         <button ng-click="$log.error(message)">error</button>
-         <button ng-click="$log.debug(message)">debug</button>
-       </div>
-     </file>
-   </example>
+ </file>
+ <file name="index.html">
+ <div ng-controller="LogController">
+ <p>Reload this page with open console, enter text and hit the log button...</p>
+ Message:
+ <input type="text" ng-model="message"/>
+ <button ng-click="$log.log(message)">log</button>
+ <button ng-click="$log.warn(message)">warn</button>
+ <button ng-click="$log.info(message)">info</button>
+ <button ng-click="$log.error(message)">error</button>
+ </div>
+ </file>
+ </example>
  */
 
 /**
@@ -58,7 +57,7 @@ function $LogProvider() {
   this.debugEnabled = function(flag) {
     if (isDefined(flag)) {
       debug = flag;
-    return this;
+      return this;
     } else {
       return debug;
     }
@@ -109,7 +108,7 @@ function $LogProvider() {
        * @description
        * Write a debug message
        */
-      debug: (function() {
+      debug: (function () {
         var fn = consoleLog('debug');
 
         return function() {

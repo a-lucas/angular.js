@@ -35,6 +35,7 @@ function $xhrFactoryProvider() {
  * @requires $window
  * @requires $document
  * @requires $xhrFactory
+ * @requires $engineQueue
  *
  * @description
  * HTTP backend used by the {@link ng.$http service} that delegates to
@@ -47,12 +48,12 @@ function $xhrFactoryProvider() {
  * $httpBackend} which can be trained with responses.
  */
 function $HttpBackendProvider() {
-  this.$get = ['$browser', '$window', '$document', '$xhrFactory', function($browser, $window, $document, $xhrFactory) {
-    return createHttpBackend($browser, $xhrFactory, $browser.defer, $window.angular.callbacks, $document[0]);
+  this.$get = ['$browser', '$window', '$document', '$xhrFactory', '$engineQueue', function($browser, $window, $document, $xhrFactory, $engineQueue) {
+    return createHttpBackend($browser, $xhrFactory, $engineQueue, $browser.defer, $window.angular.callbacks, $document[0]);
   }];
 }
 
-function createHttpBackend($browser, createXhr, $browserDefer, callbacks, rawDocument) {
+function createHttpBackend($browser, createXhr, engineQueue, $browserDefer, callbacks, rawDocument) {
   // TODO(vojta): fix the signature
   return function(method, url, post, callback, headers, timeout, withCredentials, responseType) {
     $browser.$$incOutstandingRequestCount();
@@ -71,7 +72,7 @@ function createHttpBackend($browser, createXhr, $browserDefer, callbacks, rawDoc
         callbacks[callbackId] = noop;
       });
     } else {
-
+      engineQueue.add({id: url}, 'httpBackend');
       var xhr = createXhr(method, url);
 
       xhr.open(method, url, true);
@@ -157,12 +158,15 @@ function createHttpBackend($browser, createXhr, $browserDefer, callbacks, rawDoc
       }
       jsonpDone = xhr = null;
 
+      engineQueue.resolve({id: url}, 'httpBackend');
+
       callback(status, response, headersString, statusText);
       $browser.$$completeOutstandingRequest(noop);
     }
   };
 
   function jsonpReq(url, callbackId, done) {
+    engineQueue.add({id: url}, 'httpBackend');
     // we can't use jQuery/jqLite here because jQuery does crazy stuff with script elements, e.g.:
     // - fetches local scripts via XHR and evals them
     // - adds and immediately removes script elements from the document
@@ -188,6 +192,7 @@ function createHttpBackend($browser, createXhr, $browserDefer, callbacks, rawDoc
       }
 
       if (done) {
+        engineQueue.resolve({id: url}, 'httpBackend');
         done(status, text);
       }
     };

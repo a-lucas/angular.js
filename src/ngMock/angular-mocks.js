@@ -9,6 +9,23 @@
  */
 angular.mock = {};
 
+
+angular.mock.$EventQueueProvider = function() {
+  this.$get = function() {
+    return new angular.mock.$EventQueue();
+  };
+};
+
+angular.mock.$EventQueue = function() {
+  var self = this;
+
+  this.isMock = true;
+
+  self.add = function(object, type) {};
+
+  self.resolve = function(object, type) {};
+
+};
 /**
  * ! This is a private undocumented service !
  *
@@ -94,6 +111,16 @@ angular.mock.$Browser = function() {
 
     return false;
   };
+
+  /**
+   * @name dispatchEvent
+   *
+   * @description
+   * Send an event to the window.
+   *
+   *
+   */
+  self.dispatchEvent = function(event) {};
 
 
   /**
@@ -1303,7 +1330,7 @@ angular.mock.$HttpBackendProvider = function() {
  * @param {Object=} $browser Auto-flushing enabled if specified
  * @return {Object} Instance of $httpBackend mock
  */
-function createHttpBackendMock($rootScope, $timeout, $delegate, $browser) {
+function createHttpBackendMock($rootScope, $timeout, $eventQueue, $delegate, $browser) {
   var definitions = [],
       expectations = [],
       responses = [],
@@ -2225,6 +2252,7 @@ angular.mock.$ComponentControllerProvider = ['$compileProvider', function($compi
  */
 angular.module('ngMock', ['ng']).provider({
   $browser: angular.mock.$BrowserProvider,
+  $eventQueue: angular.mock.$EventQueueProvider,
   $exceptionHandler: angular.mock.$ExceptionHandlerProvider,
   $log: angular.mock.$LogProvider,
   $interval: angular.mock.$IntervalProvider,
@@ -2470,7 +2498,7 @@ angular.module('ngMockE2E', ['ng']).config(['$provide', function($provide) {
  */
 angular.mock.e2e = {};
 angular.mock.e2e.$httpBackendDecorator =
-  ['$rootScope', '$timeout', '$delegate', '$browser', createHttpBackendMock];
+  ['$rootScope', '$timeout', '$engineQueue', '$delegate', '$browser', createHttpBackendMock];
 
 
 /**

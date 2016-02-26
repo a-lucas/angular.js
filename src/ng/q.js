@@ -218,18 +218,18 @@
  */
 function $QProvider() {
 
-  this.$get = ['$rootScope', '$exceptionHandler', function($rootScope, $exceptionHandler) {
+  this.$get = ['$rootScope', '$exceptionHandler', '$engineQueue', function($rootScope, $exceptionHandler, $engineQueue) {
     return qFactory(function(callback) {
       $rootScope.$evalAsync(callback);
-    }, $exceptionHandler);
+    }, $exceptionHandler, $engineQueue);
   }];
 }
 
 function $$QProvider() {
-  this.$get = ['$browser', '$exceptionHandler', function($browser, $exceptionHandler) {
+  this.$get = ['$browser', '$exceptionHandler', '$engineQueue', function($browser, $exceptionHandler, $engineQueue) {
     return qFactory(function(callback) {
       $browser.defer(callback);
-    }, $exceptionHandler);
+    }, $exceptionHandler, $engineQueue);
   }];
 }
 
@@ -241,8 +241,18 @@ function $$QProvider() {
  *     debugging purposes.
  * @returns {object} Promise manager.
  */
-function qFactory(nextTick, exceptionHandler) {
+function qFactory(nextTick, exceptionHandler, engineQueue) {
   var $qMinErr = minErr('$q', TypeError);
+
+
+    /**
+     * @ngdoc property
+     * @name ng.$q#promiseId
+     * @kind property
+     *
+     * @description is an uuid integer
+     */
+  var promiseId = 0;
 
   /**
    * @ngdoc method
@@ -260,6 +270,7 @@ function qFactory(nextTick, exceptionHandler) {
     d.resolve = simpleBind(d, d.resolve);
     d.reject = simpleBind(d, d.reject);
     d.notify = simpleBind(d, d.notify);
+
     return d;
   };
 
@@ -333,6 +344,9 @@ function qFactory(nextTick, exceptionHandler) {
 
   function Deferred() {
     this.promise = new Promise();
+    promiseId++;
+    this.id = promiseId;
+    engineQueue.add({id: this.id}, 'promise');
   }
 
   extend(Deferred.prototype, {
@@ -344,6 +358,7 @@ function qFactory(nextTick, exceptionHandler) {
           "Expected promise to be resolved with value other than itself '{0}'",
           val));
       } else {
+        engineQueue.resolve({id: this.id}, 'promise');
         this.$$resolve(val);
       }
 
@@ -382,6 +397,7 @@ function qFactory(nextTick, exceptionHandler) {
 
     reject: function(reason) {
       if (this.promise.$$state.status) return;
+      engineQueue.resolve({id: this.id}, 'promise');
       this.$$reject(reason);
     },
 

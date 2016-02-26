@@ -32,7 +32,7 @@
 */
 
 describe('q', function() {
-  var q, defer, deferred, promise, log;
+  var q, defer, deferred, promise, log, $engineQueue;
 
   // The following private functions are used to help with logging for testing invocation of the
   // promise callbacks.
@@ -181,14 +181,16 @@ describe('q', function() {
   };
 
 
-  beforeEach(function() {
-    q = qFactory(mockNextTick.nextTick, noop),
+
+  beforeEach(inject(function($injector) {
+    $engineQueue = $injector.get('$engineQueue');
+    q = qFactory(mockNextTick.nextTick, noop, $engineQueue),
     defer = q.defer;
     deferred =  defer();
     promise = deferred.promise;
     log = [];
     mockNextTick.queue = [];
-  });
+  }));
 
 
   afterEach(function() {
@@ -1982,7 +1984,7 @@ describe('q', function() {
 
 
     beforeEach(function() {
-      q = qFactory(mockNextTick.nextTick, mockExceptionLogger.logger),
+      q = qFactory(mockNextTick.nextTick, mockExceptionLogger.logger, $engineQueue),
       defer = q.defer;
       deferred =  defer();
       promise = deferred.promise;
@@ -2096,7 +2098,7 @@ describe('q', function() {
       errorSpy = jasmine.createSpy('errorSpy');
 
 
-      q = qFactory(mockNextTick.nextTick, exceptionExceptionSpy);
+      q = qFactory(mockNextTick.nextTick, exceptionExceptionSpy, $engineQueue);
       deferred = q.defer();
     });
 
