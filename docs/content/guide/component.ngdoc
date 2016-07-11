@@ -29,7 +29,7 @@ and link functions are unavailable
 Components can be registered using the `.component()` method of an Angular module (returned by {@link module `angular.module()`}). The method takes two arguments:
 
   * The name of the Component (as string).
-  * The Component config object (note that, unlike the `.directive()` method, this method does **not** take a factory function.
+  * The Component config object. (Note that, unlike the `.directive()` method, this method does **not** take a factory function.)
 
 <example name="heroComponentSimple" module="heroApp">
 <file name="index.js">
@@ -118,7 +118,7 @@ components should follow a few simple conventions:
     `@` bindings can be used when the input is a string, especially when the value of the binding doesn't change.
     ```js
       bindings: {
-        hero: `<`,
+        hero: '<',
         comment: '@'
       }
     ```
@@ -133,7 +133,9 @@ components should follow a few simple conventions:
     For a deletion, that means the component doesn't delete the `hero` itself, but sends it back to
     the owner component via the correct event.
     ```html
-        <button ng-click="$ctrl.onDelete({hero: hero})">Delete</button>
+        <!-- note that we use kebab-case for bindings in the template as usual -->
+        <editable-field on-update="$ctrl.update('location', value)"></editable-field><br>
+        <button ng-click="$ctrl.onDelete({hero: $ctrl.hero})">Delete</button>
     ```
   - That way, the parent component can decide what to do with the event (e.g. delete an item or update the properties)
     ```js
@@ -146,6 +148,30 @@ components should follow a few simple conventions:
         });
       }
     ```
+
+- **Components have a well-defined lifecycle**
+Each component can implement "lifecycle hooks". These are methods that will be called at certain points in the life
+of the component. The following hook methods can be implemented:
+
+  * `$onInit()` - Called on each controller after all the controllers on an element have been constructed and
+    had their bindings initialized (and before the pre &amp; post linking functions for the directives on
+    this element). This is a good place to put initialization code for your controller.
+  * `$onChanges(changesObj)` - Called whenever one-way bindings are updated. The `changesObj` is a hash whose keys
+    are the names of the bound properties that have changed, and the values are an object of the form
+    `{ currentValue, previousValue, isFirstChange() }`. Use this hook to trigger updates within a component such as
+    cloning the bound value to prevent accidental mutation of the outer value.
+  * `$onDestroy()` - Called on a controller when its containing scope is destroyed. Use this hook for releasing
+    external resources, watches and event handlers.
+  * `$postLink()` - Called after this controller's element and its children have been linked. Similar to the post-link
+    function this hook can be used to set up DOM event handlers and do direct DOM manipulation.
+    Note that child elements that contain `templateUrl` directives will not have been compiled and linked since
+    they are waiting for their template to load asynchronously and their own compilation and linking has been
+    suspended until that occurs.
+    This hook can be considered analogous to the `ngAfterViewInit` and `ngAfterContentInit` hooks in Angular 2.
+    Since the compilation process is rather different in Angular 1 there is no direct mapping and care should
+    be taken when upgrading.
+
+By implementing these methods, your component can hook into its lifecycle.
 
 - **An application is a tree of components:**
 Ideally, the whole application should be a tree of components that implement clearly defined inputs
@@ -207,8 +233,12 @@ it upwards to the heroList component, which updates the original data.
 </file>
 
 <file name="heroDetail.js">
-  function HeroDetailController($scope, $element, $attrs) {
+  function HeroDetailController() {
     var ctrl = this;
+
+    ctrl.delete = function() {
+      ctrl.onDelete({hero: ctrl.hero});
+    };
 
     ctrl.update = function(prop, value) {
       ctrl.onUpdate({hero: ctrl.hero, prop: prop, value: value});
@@ -230,9 +260,9 @@ it upwards to the heroList component, which updates the original data.
 
   function EditableFieldController($scope, $element, $attrs) {
     var ctrl = this;
-    this.editMode = false;
+    ctrl.editMode = false;
 
-    this.handleModeChange = function() {
+    ctrl.handleModeChange = function() {
       if (ctrl.editMode) {
         ctrl.onUpdate({value: ctrl.fieldValue});
         ctrl.fieldValueCopy = ctrl.fieldValue;
@@ -240,17 +270,17 @@ it upwards to the heroList component, which updates the original data.
       ctrl.editMode = !ctrl.editMode;
     };
 
-    this.reset = function() {
+    ctrl.reset = function() {
       ctrl.fieldValue = ctrl.fieldValueCopy;
     };
 
-    this.$onInit = function() {
+    ctrl.$onInit = function() {
       // Make a copy of the initial value to be able to reset it later
-      this.fieldValueCopy = this.fieldValue;
+      ctrl.fieldValueCopy = ctrl.fieldValue;
 
       // Set a default fieldType
-      if (!this.fieldType) {
-        this.fieldType = 'text';
+      if (!ctrl.fieldType) {
+        ctrl.fieldType = 'text';
       }
     };
   }
@@ -277,7 +307,7 @@ it upwards to the heroList component, which updates the original data.
   <div>
     Name: {{$ctrl.hero.name}}<br>
     Location: <editable-field field-value="$ctrl.hero.location" field-type="text" on-update="$ctrl.update('location', value)"></editable-field><br>
-    <button ng-click="$ctrl.onDelete({hero: $ctrl.hero})">Delete</button>
+    <button ng-click="$ctrl.delete()">Delete</button>
   </div>
 </file>
 <file name="editableField.html">
@@ -337,8 +367,15 @@ directly into your component without creating an extra route controller:
 
 Directives can require the controllers of other directives to enable communication
 between each other. This can be achieved in a component by providing an
-object mapping for the `require` property.  Here is a tab pane example built
-from components:
+object mapping for the `require` property. The object keys specify the property names under which
+the required controllers (object values) will be bound to the requiring component's controller.
+
+<div class="alert alert-warning">
+Note that the required controllers will not be available during the instantiation of the controller,
+but they are guaranteed to be available just before the `$onInit` method is executed!
+</div>
+
+Here is a tab pane example built from components:
 
 <example module="docsTabsExample">
   <file name="script.js">
@@ -410,53 +447,52 @@ angular.module('docsTabsExample', [])
 
 # Unit-testing Component Controllers
 
-The easiest way to unit-test a component controller is by using the {@link ngMock.$componentController $componentController}
-that is included in {@link ngMock}. The advantage of this method is that you do not have
-to create any DOM elements. The following example shows how to do this for the `heroDetail` component
-from above.
+The easiest way to unit-test a component controller is by using the
+{@link ngMock.$componentController $componentController} that is included in {@link ngMock}. The
+advantage of this method is that you do not have to create any DOM elements. The following example
+shows how to do this for the `heroDetail` component from above.
 
 The examples use the [Jasmine](http://jasmine.github.io/) testing framework.
 
 **Controller Test:**
 ```js
 describe('component: heroDetail', function() {
-  var component, scope, hero;
+  var $componentController;
 
-  beforeEach(module('simpleComponent'));
-
-  beforeEach(inject(function($rootScope, $componentController) {
-    scope = $rootScope.$new();
-    hero = {name: 'Wolverine'};
+  beforeEach(module('heroApp'));
+  beforeEach(inject(function(_$componentController_) {
+    $componentController = _$componentController_;
   }));
 
-  it('should set the default values of the hero', function() {
-    // It's necessary to always pass the scope in the locals, so that the controller instance can be bound to it
-    component = $componentController('heroDetail', {$scope: scope});
-
-    expect(component.hero).toEqual({
-      name: undefined,
-      location: 'unknown'
-    });
-  });
-
-  it('should assign the name bindings to the hero object', function() {
+  it('should expose a `hero` object', function() {
     // Here we are passing actual bindings to the component
+    var bindings = {hero: {name: 'Wolverine'}};
+    var ctrl = $componentController('heroDetail', null, bindings);
 
-    component = $componentController('heroDetail',
-      {$scope: scope},
-      {hero: hero}
-    );
-    expect(component.hero.name).toBe('Wolverine');
+    expect(ctrl.hero).toBeDefined();
+    expect(ctrl.hero.name).toBe('Wolverine');
   });
 
-  it('should call the onDelete binding when a hero is deleted', function() {
-    component = $componentController('heroDetail',
-      {$scope: scope},
-      {hero: hero, onDelete: jasmine.createSpy('deleteSpy')}
-    );
+  it('should call the `onDelete` binding, when deleting the hero', function() {
+    var onDeleteSpy = jasmine.createSpy('onDelete');
+    var bindings = {hero: {}, onDelete: onDeleteSpy};
+    var ctrl = $componentController('heroDetail', null, bindings);
 
-    component.onDelete({hero: component.hero});
-    expect(spy('deleteSpy')).toHaveBeenCalledWith(component.hero);
+    ctrl.delete();
+    expect(onDeleteSpy).toHaveBeenCalledWith({hero: ctrl.hero});
+  });
+
+  it('should call the `onUpdate` binding, when updating a property', function() {
+    var onUpdateSpy = jasmine.createSpy('onUpdate');
+    var bindings = {hero: {}, onUpdate: onUpdateSpy};
+    var ctrl = $componentController('heroDetail', null, bindings);
+
+    ctrl.update('foo', 'bar');
+    expect(onUpdateSpy).toHaveBeenCalledWith({
+      hero: ctrl.hero,
+      prop: 'foo',
+      value: 'bar'
+    });
   });
 
 });

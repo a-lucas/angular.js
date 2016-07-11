@@ -66,6 +66,7 @@
   $DateProvider,
   $DocumentProvider,
   $EngineQueueProvider,
+  $$IsDocumentHiddenProvider,
   $ExceptionHandlerProvider,
   $FilterProvider,
   $$ForceReflowProvider,
@@ -77,6 +78,7 @@
   $HttpParamSerializerJQLikeProvider,
   $HttpBackendProvider,
   $xhrFactoryProvider,
+  $jsonpCallbacksProvider,
   $LocationProvider,
   $LogProvider,
   $ParseProvider,
@@ -149,11 +151,14 @@ function publishExternalAPI(angular) {
     'isDate': isDate,
     'lowercase': lowercase,
     'uppercase': uppercase,
-    'callbacks': {counter: 0},
+    'callbacks': {$$counter: 0},
     'getTestability': getTestability,
+    'reloadWithDebugInfo': reloadWithDebugInfo,
     '$$minErr': minErr,
     '$$csp': csp,
-    'reloadWithDebugInfo': reloadWithDebugInfo
+    '$$encodeUriSegment': encodeUriSegment,
+    '$$encodeUriQuery': encodeUriQuery,
+    '$$stringify': stringify
   });
 
   angularModule = setupModuleLoader(window);
@@ -229,6 +234,7 @@ function publishExternalAPI(angular) {
         $controller: $ControllerProvider,
         $document: $DocumentProvider,
         $engineQueue: $EngineQueueProvider,
+        $$isDocumentHidden: $$IsDocumentHiddenProvider,
         $exceptionHandler: $ExceptionHandlerProvider,
         $filter: $FilterProvider,
         $$forceReflow: $$ForceReflowProvider,
@@ -239,6 +245,7 @@ function publishExternalAPI(angular) {
         $httpParamSerializerJQLike: $HttpParamSerializerJQLikeProvider,
         $httpBackend: $HttpBackendProvider,
         $xhrFactory: $xhrFactoryProvider,
+        $jsonpCallbacks: $jsonpCallbacksProvider,
         $location: $LocationProvider,
         $log: $LogProvider,
         $parse: $ParseProvider,

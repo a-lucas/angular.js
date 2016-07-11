@@ -5,6 +5,7 @@ var angularFiles = {
     'src/minErr.js',
     'src/Angular.js',
     'src/loader.js',
+    'src/shallowCopy.js',
     'src/stringify.js',
     'src/AngularPublic.js',
     'src/jqLite.js',
@@ -28,6 +29,7 @@ var angularFiles = {
     'src/ng/httpBackend.js',
     'src/ng/interpolate.js',
     'src/ng/interval.js',
+    'src/ng/jsonpCallbacks.js',
     'src/ng/locale.js',
     'src/ng/location.js',
     'src/ng/log.js',
@@ -121,10 +123,15 @@ var angularFiles = {
     'ngMessages': [
       'src/ngMessages/messages.js'
     ],
+    'ngParseExt': [
+      'src/ngParseExt/ucd.js',
+      'src/ngParseExt/module.js'
+    ],
     'ngResource': [
       'src/ngResource/resource.js'
     ],
     'ngRoute': [
+      'src/shallowCopy.js',
       'src/ngRoute/route.js',
       'src/ngRoute/routeParams.js',
       'src/ngRoute/directive/ngView.js'
@@ -134,7 +141,8 @@ var angularFiles = {
       'src/ngSanitize/filter/linky.js'
     ],
     'ngMock': [
-      'src/ngMock/angular-mocks.js'
+      'src/ngMock/angular-mocks.js',
+      'src/ngMock/browserTrigger.js'
     ],
     'ngTouch': [
       'src/ngTouch/touch.js',
@@ -149,7 +157,6 @@ var angularFiles = {
 
   'angularScenario': [
     'src/ngScenario/Scenario.js',
-    'src/ngScenario/browserTrigger.js',
     'src/ngScenario/Application.js',
     'src/ngScenario/Describe.js',
     'src/ngScenario/Future.js',
@@ -172,6 +179,7 @@ var angularFiles = {
     'test/auto/*.js',
     'test/ng/**/*.js',
     'test/ngAnimate/*.js',
+    'test/ngMessageFormat/*.js',
     'test/ngMessages/*.js',
     'test/ngCookies/*.js',
     'test/ngResource/*.js',
@@ -206,9 +214,11 @@ var angularFiles = {
   "karmaModules": [
     'build/angular.js',
     '@angularSrcModules',
-    'src/ngScenario/browserTrigger.js',
+    'test/modules/no_bootstrap.js',
     'test/helpers/*.js',
+    'test/ngAnimate/*.js',
     'test/ngMessageFormat/*.js',
+    'test/ngMessages/*.js',
     'test/ngMock/*.js',
     'test/ngCookies/*.js',
     'test/ngRoute/**/*.js',
@@ -220,6 +230,15 @@ var angularFiles = {
 
   'karmaJquery': [
     'bower_components/jquery/dist/jquery.js',
+    'test/jquery_alias.js',
+    '@angularSrc',
+    '@angularSrcModules',
+    '@angularScenario',
+    '@angularTest'
+  ],
+
+  'karmaJqueryOld': [
+    'bower_components/jquery-2.1/dist/jquery.js',
     'test/jquery_alias.js',
     '@angularSrc',
     '@angularSrcModules',

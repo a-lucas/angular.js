@@ -24,13 +24,21 @@ var ISO_DATE_REGEXP = /^\d{4,}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+(?:[+-
 //   9. Fragment
 //                 1111111111111111 222   333333    44444        555555555555555555555555    666     77777777     8888888     999
 var URL_REGEXP = /^[a-z][a-z\d.+-]*:\/*(?:[^:@]+(?::[^@]+)?@)?(?:[^\s:/?#]+|\[[a-f\d:]+\])(?::\d+)?(?:\/[^?#]*)?(?:\?[^#]*)?(?:#.*)?$/i;
-var EMAIL_REGEXP = /^[a-z0-9!#$%&'*+\/=?^_`{|}~.-]+@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/i;
+/* jshint maxlen:220 */
+var EMAIL_REGEXP = /^(?=.{1,254}$)(?=.{1,64}@)[-!#$%&'*+\/0-9=?A-Z^_`a-z{|}~]+(\.[-!#$%&'*+\/0-9=?A-Z^_`a-z{|}~]+)*@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/;
+/* jshint maxlen:200 */
 var NUMBER_REGEXP = /^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$/;
 var DATE_REGEXP = /^(\d{4,})-(\d{2})-(\d{2})$/;
 var DATETIMELOCAL_REGEXP = /^(\d{4,})-(\d\d)-(\d\d)T(\d\d):(\d\d)(?::(\d\d)(\.\d{1,3})?)?$/;
 var WEEK_REGEXP = /^(\d{4,})-W(\d\d)$/;
 var MONTH_REGEXP = /^(\d{4,})-(\d\d)$/;
 var TIME_REGEXP = /^(\d\d):(\d\d)(?::(\d\d)(\.\d{1,3})?)?$/;
+
+var PARTIAL_VALIDATION_EVENTS = 'keydown wheel mousedown';
+var PARTIAL_VALIDATION_TYPES = createMap();
+forEach('date,datetime-local,month,time,week'.split(','), function(type) {
+  PARTIAL_VALIDATION_TYPES[type] = true;
+});
 
 var inputType = {
 
@@ -94,11 +102,11 @@ var inputType = {
              <span class="error" ng-show="myForm.input.$error.pattern">
                Single word only!</span>
            </div>
-           <tt>text = {{example.text}}</tt><br/>
-           <tt>myForm.input.$valid = {{myForm.input.$valid}}</tt><br/>
-           <tt>myForm.input.$error = {{myForm.input.$error}}</tt><br/>
-           <tt>myForm.$valid = {{myForm.$valid}}</tt><br/>
-           <tt>myForm.$error.required = {{!!myForm.$error.required}}</tt><br/>
+           <code>text = {{example.text}}</code><br/>
+           <code>myForm.input.$valid = {{myForm.input.$valid}}</code><br/>
+           <code>myForm.input.$error = {{myForm.input.$error}}</code><br/>
+           <code>myForm.$valid = {{myForm.$valid}}</code><br/>
+           <code>myForm.$error.required = {{!!myForm.$error.required}}</code><br/>
           </form>
         </file>
         <file name="protractor.js" type="protractor">
@@ -387,7 +395,7 @@ var inputType = {
         }]);
      </script>
      <form name="myForm" ng-controller="DateController as dateCtrl">
-        <label for="exampleInput">Pick a between 8am and 5pm:</label>
+        <label for="exampleInput">Pick a time between 8am and 5pm:</label>
         <input type="time" id="exampleInput" name="input" ng-model="example.value"
             placeholder="HH:mm:ss" min="08:00:00" max="17:00:00" required />
         <div role="alert">
@@ -1108,7 +1116,7 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
   if (!$sniffer.android) {
     var composing = false;
 
-    element.on('compositionstart', function(data) {
+    element.on('compositionstart', function() {
       composing = true;
     });
 
@@ -1117,6 +1125,8 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
       listener();
     });
   }
+
+  var timeout;
 
   var listener = function(ev) {
     if (timeout) {
@@ -1147,8 +1157,6 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
   if ($sniffer.hasEvent('input')) {
     element.on('input', listener);
   } else {
-    var timeout;
-
     var deferListener = function(ev, input, origValue) {
       if (!timeout) {
         timeout = $browser.defer(function() {
@@ -1179,6 +1187,26 @@ function baseInputType(scope, element, attr, ctrl, $sniffer, $browser) {
   // if user paste into input using mouse on older browser
   // or form autocomplete on newer browser, we need "change" event to catch it
   element.on('change', listener);
+
+  // Some native input types (date-family) have the ability to change validity without
+  // firing any input/change events.
+  // For these event types, when native validators are present and the browser supports the type,
+  // check for validity changes on various DOM events.
+  if (PARTIAL_VALIDATION_TYPES[type] && ctrl.$$hasNativeValidators && type === attr.type) {
+    element.on(PARTIAL_VALIDATION_EVENTS, function(ev) {
+      if (!timeout) {
+        var validity = this[VALIDITY_STATE_PROPERTY];
+        var origBadInput = validity.badInput;
+        var origTypeMismatch = validity.typeMismatch;
+        timeout = $browser.defer(function() {
+          timeout = null;
+          if (validity.badInput !== origBadInput || validity.typeMismatch !== origTypeMismatch) {
+            listener(ev);
+          }
+        });
+      }
+    });
+  }
 
   ctrl.$render = function() {
     // Workaround for Firefox validation #12102.
@@ -1233,7 +1261,7 @@ function createDateParser(regexp, mapping) {
       // When a date is JSON'ified to wraps itself inside of an extra
       // set of double quotes. This makes the date parsing code unable
       // to match the date string and parse it as a date.
-      if (iso.charAt(0) == '"' && iso.charAt(iso.length - 1) == '"') {
+      if (iso.charAt(0) === '"' && iso.charAt(iso.length - 1) === '"') {
         iso = iso.substring(1, iso.length - 1);
       }
       if (ISO_DATE_REGEXP.test(iso)) {
@@ -1383,7 +1411,7 @@ function numberInputType(scope, element, attr, ctrl, $sniffer, $browser) {
 
     attr.$observe('min', function(val) {
       if (isDefined(val) && !isNumber(val)) {
-        val = parseFloat(val, 10);
+        val = parseFloat(val);
       }
       minVal = isNumber(val) && !isNaN(val) ? val : undefined;
       // TODO(matsko): implement validateLater to reduce number of validations
@@ -1399,7 +1427,7 @@ function numberInputType(scope, element, attr, ctrl, $sniffer, $browser) {
 
     attr.$observe('max', function(val) {
       if (isDefined(val) && !isNumber(val)) {
-        val = parseFloat(val, 10);
+        val = parseFloat(val);
       }
       maxVal = isNumber(val) && !isNaN(val) ? val : undefined;
       // TODO(matsko): implement validateLater to reduce number of validations
@@ -1435,14 +1463,20 @@ function emailInputType(scope, element, attr, ctrl, $sniffer, $browser) {
 }
 
 function radioInputType(scope, element, attr, ctrl) {
+  var doTrim = !attr.ngTrim || trim(attr.ngTrim) !== 'false';
   // make the name unique, if not defined
   if (isUndefined(attr.name)) {
     element.attr('name', nextUid());
   }
 
   var listener = function(ev) {
+    var value;
     if (element[0].checked) {
-      ctrl.$setViewValue(attr.value, ev && ev.type);
+      value = attr.value;
+      if (doTrim) {
+        value = trim(value);
+      }
+      ctrl.$setViewValue(value, ev && ev.type);
     }
   };
 
@@ -1450,6 +1484,11 @@ function radioInputType(scope, element, attr, ctrl) {
 
   ctrl.$render = function() {
     var value = attr.value;
+    if (doTrim) {
+      value = trim(value);
+    }
+    // Strict comparison would cause a BC
+    /* jshint eqeqeq:false */
     element[0].checked = (value == ctrl.$viewValue);
   };
 
@@ -1704,10 +1743,8 @@ var CONSTANT_VALUE_REGEXP = /^(true|false|\d+)$/;
  * `ngValue` is useful when dynamically generating lists of radio buttons using
  * {@link ngRepeat `ngRepeat`}, as shown below.
  *
- * Likewise, `ngValue` can be used to generate `<option>` elements for
- * the {@link select `select`} element. In that case however, only strings are supported
- * for the `value `attribute, so the resulting `ngModel` will always be a string.
- * Support for `select` models with non-string values is available via `ngOptions`.
+ * Likewise, `ngValue` can be used to set the value of `<option>` elements for
+ * the {@link select `select`} element.
  *
  * @element input
  * @param {string=} ngValue angular expression, whose value will be bound to the `value` attribute
